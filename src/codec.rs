@@ -2,21 +2,24 @@
 use base64::prelude::*;
 use rand::{rng, Rng};
 
-const PARAM_RANGE: (i32, i32) = (0, 629);
+const PARAM_RANGE: ((u8, u8),(u8, u8),(u8, u8)) = ((1, 9), (1, 63), (2, 9));
 
 pub struct Encodee {
   plain: Vec<u8>,
-  param: (i32, Vec<u8>),
+  params: (u8,u8,u8, Vec<u8>),
   cipher: Option<Vec<u8>>,
 }
 
 impl Encodee {
-  pub fn new(plain: String, param: i32, keyword: String) -> Self {
-    assert!(PARAM_RANGE.0 <= param && param <= PARAM_RANGE.1);
+  pub fn new(plain: String, param: u16, keyword: String) -> Self {
+    let params = ((param / 1000) as u8, (param / 10 % 100) as u8, (param % 10) as u8, BASE64_STANDARD_NO_PAD.encode(keyword).into_bytes());
+    assert!(PARAM_RANGE.0.0 <= params.0 && params.0 <= PARAM_RANGE.0.1);
+    assert!(PARAM_RANGE.1.0 <= params.1 && params.1 <= PARAM_RANGE.1.1);
+    assert!(PARAM_RANGE.2.0 <= params.2 && params.2 <= PARAM_RANGE.2.1);
 
     Self {
       plain: BASE64_STANDARD_NO_PAD.encode(plain).into_bytes(),
-      param: (param + 10, BASE64_STANDARD_NO_PAD.encode(keyword).into_bytes()),
+      params,
       cipher: None,
     }
   }
@@ -24,14 +27,14 @@ impl Encodee {
   pub fn encode(&mut self) -> &str {
     if self.cipher.is_none() {
       self.cipher = Some(self.plain.clone());
-      self.encode_postfix().encode_keyword().encode_caesar();
+      self.encode_postfix().encode_keyword().encode_caesar().encode_reorder();
     }
     str::from_utf8(self.cipher.as_ref().unwrap()).unwrap()
   }
 
   fn encode_postfix(&mut self) -> &mut Encodee {
     let cipher = self.cipher.as_mut().unwrap();
-    let len = (self.param.0 % 10) as usize;
+    let len = self.params.0 as usize;
     cipher.reserve(len);
     let mut rng = rng();
     for _ in 0..len {
@@ -41,7 +44,7 @@ impl Encodee {
   }
 
   fn encode_keyword(&mut self) -> &mut Encodee {
-    keyword(self.cipher.as_mut().unwrap(), &self.param.1);
+    keyword(self.cipher.as_mut().unwrap(), &self.params.3);
     self
   }
   // 另一种基于关键字的算法
@@ -70,25 +73,38 @@ impl Encodee {
 
   fn encode_caesar(&mut self) -> &mut Encodee {
     self.cipher.as_mut().unwrap().iter_mut().for_each(|c| {
-      *c = from_base64((to_base64(*c) + (self.param.0 / 10) as u8) % 64);
+      *c = from_base64((to_base64(*c) + self.params.1) % 64);
     });
+    self
+  }
+
+  fn encode_reorder(&mut self) -> &mut Encodee {
+    let mut grps: Vec<Vec<u8>> = vec![vec![]; self.params.2 as usize];
+    self.cipher.as_ref().unwrap().iter().enumerate()
+        .for_each(|(idx, &c)| {
+          grps[idx % self.params.2 as usize].push(c);
+        });
+    self.cipher = Some(grps.concat());
     self
   }
 }
 
 pub struct Decodee {
   cipher: Vec<u8>,
-  param: (i32, Vec<u8>),
+  params: (u8,u8,u8, Vec<u8>),
   pub plain: Option<Vec<u8>>,
 }
 
 impl Decodee {
-  pub fn new(cipher: String, param: i32, keyword: String) -> Self {
-    assert!(PARAM_RANGE.0 <= param && param <= PARAM_RANGE.1);
+  pub fn new(cipher: String, param: u16, keyword: String) -> Self {
+    let params = ((param / 1000) as u8, (param / 10 % 100) as u8, (param % 10) as u8, BASE64_STANDARD_NO_PAD.encode(keyword).into_bytes());
+    assert!(PARAM_RANGE.0.0 <= params.0 && params.0 <= PARAM_RANGE.0.1);
+    assert!(PARAM_RANGE.1.0 <= params.1 && params.1 <= PARAM_RANGE.1.1);
+    assert!(PARAM_RANGE.2.0 <= params.2 && params.2 <= PARAM_RANGE.2.1);
 
     Self {
       cipher: cipher.into_bytes(),
-      param: (param + 10, BASE64_STANDARD_NO_PAD.encode(keyword).into_bytes()),
+      params,
       plain: None,
     }
   }
@@ -96,7 +112,7 @@ impl Decodee {
   pub fn decode(&mut self) -> &str {
     if self.plain.is_none() {
       self.plain = Some(self.cipher.clone());
-      self.decode_caesar().decode_keyword().decode_postfix();
+      self.decode_reorder().decode_caesar().decode_keyword().decode_postfix();
       self.plain = Some(BASE64_STANDARD_NO_PAD.decode(self.plain.as_ref().unwrap()).unwrap());
     }
     str::from_utf8(self.plain.as_ref().unwrap()).unwrap()
@@ -104,12 +120,12 @@ impl Decodee {
 
   fn decode_postfix(&mut self) -> &mut Decodee {
     let plain = self.plain.as_mut().unwrap();
-    plain.truncate(plain.len() - (self.param.0 % 10) as usize);
+    plain.truncate(plain.len() - self.params.0 as usize);
     self
   }
 
   fn decode_keyword(&mut self) -> &mut Decodee {
-    keyword(self.plain.as_mut().unwrap(), &self.param.1);
+    keyword(self.plain.as_mut().unwrap(), &self.params.3);
     self
   }
   // 另一种基于关键字的算法
@@ -139,8 +155,38 @@ impl Decodee {
 
   fn decode_caesar(&mut self) -> &mut Decodee {
     self.plain.as_mut().unwrap().iter_mut().for_each(|c| {
-      *c = from_base64((to_base64(*c) + 64 - (self.param.0 / 10) as u8) % 64);
+      *c = from_base64((to_base64(*c) + 64 - self.params.1 as u8) % 64);
     });
+    self
+  }
+
+  fn decode_reorder(&mut self) -> &mut Decodee {
+    let len = self.plain.as_ref().unwrap().len();
+    let cnts: Vec<usize> = (0..self.params.2 as usize)
+        .map(|i| {
+            if i < (len % self.params.2 as usize) {
+              (len / self.params.2 as usize) + 1
+            } else {
+              len / self.params.2 as usize
+            }})
+        .collect();
+    let grps: Vec<_> = cnts.iter()
+        .scan(self.plain.as_ref().unwrap().as_slice(), |remaining, &cnt| {
+          let (chunk, rest) = remaining.split_at(cnt);
+          *remaining = rest;
+          Some(chunk.to_vec())
+        })
+        .collect();
+    self.plain = Some(
+      (0..*cnts.last().unwrap()).map(|i| { grps.iter()
+            .map(move |grp| grp[i])
+      })
+          .flatten()
+          .chain(grps.iter()
+              .take(len % self.params.2 as usize)
+              .map(|grp| grp[grp.len() - 1]))
+          .collect()
+    );
     self
   }
 }
