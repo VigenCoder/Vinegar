@@ -3,8 +3,6 @@ use rand::{rng, Rng};
 
 const PARAM_RANGE: (i32, i32) = (0, 629);
 
-const ALPHABET: &[u8] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".as_bytes();
-
 pub struct Encodee {
   plain: Vec<u8>,
   param: (i32, Vec<u8>),
@@ -36,7 +34,7 @@ impl Encodee {
     cipher.reserve(len);
     let mut rng = rng();
     for _ in 0..len {
-      cipher.push(ALPHABET[rng.random_range(0..ALPHABET.len())]);
+      cipher.push(from_base64(rng.random_range(0..64)));
     }
     self
   }
@@ -110,9 +108,33 @@ fn keyword(databytes: &mut Vec<u8>, keybytes: &[u8]) {
 }
 
 fn to_base64(c: u8) -> u8 {
-  ALPHABET.iter().position(|&x| x == c).unwrap() as u8
+  if 65 <= c && c <= 90 {
+    c - 65
+  } else if 97 <= c && c <= 122 {
+    c - 71
+  } else if 48 <= c && c <= 57 {
+    c + 4
+  } else if c == 43 {
+    62
+  } else if c == 47 {
+    63
+  } else {
+    64
+  }
 }
 
 fn from_base64(idx: u8) -> u8 {
-  ALPHABET[idx as usize]
+  if idx <= 25 {
+    idx + 65
+  } else if 26 <= idx && idx <= 51 {
+    idx + 71
+  } else if 52 <= idx && idx <= 61 {
+    idx - 4
+  } else if idx == 62 {
+    43
+  } else if idx == 63 {
+    47
+  } else {
+    0
+  }
 }
