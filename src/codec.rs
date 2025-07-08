@@ -1,3 +1,4 @@
+// use std::collections::HashMap;
 use base64::prelude::*;
 use rand::{rng, Rng};
 
@@ -43,6 +44,29 @@ impl Encodee {
     keyword(self.cipher.as_mut().unwrap(), &self.param.1);
     self
   }
+  // 另一种基于关键字的算法
+  // fn encode_keyword(&mut self) -> &mut Encodee {
+  //   let mut map: HashMap<u8, u8> = HashMap::new();
+  //   map.reserve(64);
+  //   self.param.1.iter()
+  //       .for_each(|&c| {
+  //         if !map.contains_key(&to_base64(c)) {
+  //           map.insert(to_base64(c), map.len() as u8);
+  //         }
+  //       });
+  //   let mut k = 0;
+  //   while k < 64 {
+  //     if !map.contains_key(&k) {
+  //       map.insert(k, map.len() as u8);
+  //     }
+  //     k += 1;
+  //   }
+  //   self.cipher.as_mut().unwrap().iter_mut()
+  //       .for_each(|c| {
+  //         *c = from_base64(*map.get(&to_base64(*c)).unwrap())
+  //       });
+  //   self
+  // }
 
   fn encode_caesar(&mut self) -> &mut Encodee {
     self.cipher.as_mut().unwrap().iter_mut().for_each(|c| {
@@ -88,6 +112,30 @@ impl Decodee {
     keyword(self.plain.as_mut().unwrap(), &self.param.1);
     self
   }
+  // 另一种基于关键字的算法
+  // fn decode_keyword(&mut self) -> &mut Decodee {
+  //   let mut map: HashMap<u8, u8> = HashMap::new();
+  //   map.reserve(64);
+  //   self.param.1.iter()
+  //       .for_each(|&c| {
+  //         if !map.contains_key(&to_base64(c)) {
+  //           map.insert(to_base64(c), map.len() as u8);
+  //         }
+  //       });
+  //   let mut k = 0;
+  //   while k < 64 {
+  //     if !map.contains_key(&k) {
+  //       map.insert(k, map.len() as u8);
+  //     }
+  //     k += 1;
+  //   }
+  //   let reversed_map: HashMap<u8, u8> = map.into_iter().map(|(k, v)| (v, k)).collect();
+  //   self.plain.as_mut().unwrap().iter_mut()
+  //       .for_each(|c| {
+  //         *c = from_base64(*reversed_map.get(&to_base64(*c)).unwrap())
+  //       });
+  //   self
+  // }
 
   fn decode_caesar(&mut self) -> &mut Decodee {
     self.plain.as_mut().unwrap().iter_mut().for_each(|c| {
