@@ -2,11 +2,11 @@
 use base64::prelude::*;
 use rand::{rng, Rng};
 
-const PARAM_RANGE: ((u8, u8),(u8, u8),(u8, u8)) = ((1, 9), (1, 63), (2, 9));
+const PARAM_RANGE: ((u8, u8), (u8, u8), (u8, u8)) = ((1, 9), (1, 63), (2, 9));
 
 pub struct Encodee {
   plain: Vec<u8>,
-  params: (u8,u8,u8, Vec<u8>),
+  params: (u8, u8, u8, Vec<u8>),
   cipher: Option<Vec<u8>>,
 }
 
@@ -81,9 +81,9 @@ impl Encodee {
   fn encode_reorder(&mut self) -> &mut Encodee {
     let mut grps: Vec<Vec<u8>> = vec![vec![]; self.params.2 as usize];
     self.cipher.as_ref().unwrap().iter().enumerate()
-        .for_each(|(idx, &c)| {
-          grps[idx % self.params.2 as usize].push(c);
-        });
+      .for_each(|(idx, &c)| {
+        grps[idx % self.params.2 as usize].push(c);
+      });
     self.cipher = Some(grps.concat());
     self
   }
@@ -91,7 +91,7 @@ impl Encodee {
 
 pub struct Decodee {
   cipher: Vec<u8>,
-  params: (u8,u8,u8, Vec<u8>),
+  params: (u8, u8, u8, Vec<u8>),
   pub plain: Option<Vec<u8>>,
 }
 
@@ -163,29 +163,31 @@ impl Decodee {
   fn decode_reorder(&mut self) -> &mut Decodee {
     let len = self.plain.as_ref().unwrap().len();
     let cnts: Vec<usize> = (0..self.params.2 as usize)
-        .map(|i| {
-            if i < (len % self.params.2 as usize) {
-              (len / self.params.2 as usize) + 1
-            } else {
-              len / self.params.2 as usize
-            }})
-        .collect();
-    let grps: Vec<_> = cnts.iter()
-        .scan(self.plain.as_ref().unwrap().as_slice(), |remaining, &cnt| {
-          let (chunk, rest) = remaining.split_at(cnt);
-          *remaining = rest;
-          Some(chunk.to_vec())
-        })
-        .collect();
-    self.plain = Some(
-      (0..*cnts.last().unwrap()).map(|i| { grps.iter()
-            .map(move |grp| grp[i])
+      .map(|i| {
+        if i < (len % self.params.2 as usize) {
+          (len / self.params.2 as usize) + 1
+        } else {
+          len / self.params.2 as usize
+        }
       })
-          .flatten()
-          .chain(grps.iter()
-              .take(len % self.params.2 as usize)
-              .map(|grp| grp[grp.len() - 1]))
-          .collect()
+      .collect();
+    let grps: Vec<_> = cnts.iter()
+      .scan(self.plain.as_ref().unwrap().as_slice(), |remaining, &cnt| {
+        let (chunk, rest) = remaining.split_at(cnt);
+        *remaining = rest;
+        Some(chunk.to_vec())
+      })
+      .collect();
+    self.plain = Some(
+      (0..*cnts.last().unwrap()).map(|i| {
+        grps.iter()
+          .map(move |grp| grp[i])
+      })
+        .flatten()
+        .chain(grps.iter()
+          .take(len % self.params.2 as usize)
+          .map(|grp| grp[grp.len() - 1]))
+        .collect()
     );
     self
   }
@@ -196,9 +198,9 @@ fn keyword(databytes: &mut Vec<u8>, keybytes: &[u8]) {
     return;
   }
   databytes.iter_mut().enumerate()
-      .for_each(|(idx, databyte)| {
-        *databyte = from_base64(to_base64(*databyte) ^ to_base64(keybytes[idx % keybytes.len()]));
-      })
+    .for_each(|(idx, databyte)| {
+      *databyte = from_base64(to_base64(*databyte) ^ to_base64(keybytes[idx % keybytes.len()]));
+    })
 }
 
 fn to_base64(c: u8) -> u8 {
