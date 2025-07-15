@@ -4,3 +4,6 @@
 # IDE & Editor
 /.vscode
 /.idea
+
+# Temporary
+/temp
