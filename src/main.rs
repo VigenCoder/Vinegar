@@ -65,11 +65,11 @@ fn main() {
             if let Some(path) = &cli.input {
                 let mut file = std::fs::File::open(path).expect("Failed to open input file");
                 file.read_to_string(&mut buffer)
-                    .expect("Failed to read input file");
+                    .expect("Failed to read from input file");
             } else {
                 std::io::stdin()
                     .read_to_string(&mut buffer)
-                    .expect("Failed to read stdin");
+                    .expect("Failed to read from stdin");
             }
 
             buffer = buffer.trim_end().to_string();
