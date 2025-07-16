@@ -240,18 +240,27 @@ fn from_base64(idx: u8) -> u8 {
   }
 }
 
-#[test]
-fn test_decode() {
-  // let mut decoder = Decodee::new("123344".to_string(), 5055, "Vigen".to_string());
-  // println!("Decoded: \n{:?}", decoder.decode());
-  let example = "你好{He\u{4e16}llo} 🦀界Wo\nrld！";
-  println!("Example: \n{:?}", example);
-  let mut encoder = Encodee::new(example.to_string(), 5055, "Vigen".to_string()).unwrap();
-  println!("Encoded: \n{:?}", encoder.encode());
-  let mut decoder = Decodee::new(encoder.encode().to_string(), 5055, "Vigen".to_string()).unwrap();
-  println!("Decoded: \n{:?}", decoder.decode());
-}
-
 fn valid_param(params: &(u8, u8, u8, Vec<u8>)) -> bool {
   PARAM_RANGE.0.0 <= params.0 && params.0 <= PARAM_RANGE.0.1 && PARAM_RANGE.1.0 <= params.1 && params.1 <= PARAM_RANGE.1.1 && PARAM_RANGE.2.0 <= params.2 && params.2 <= PARAM_RANGE.2.1
+}
+
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  #[test]
+  fn test1() {
+    let example = "你好{He\u{4e16}llo} 🦀界Wo\nrld！";
+    println!("Example: \n{:?}", example);
+    let mut encoder = Encodee::new(example.to_string(), 5055, "Vigen".to_string()).unwrap();
+    println!("Encoded: \n{:?}", encoder.encode());
+    let mut decoder = Decodee::new(encoder.encode().to_string(), 5055, "Vigen".to_string()).unwrap();
+    println!("Decoded: \n{:?}", decoder.decode());
+  }
+
+  #[test]
+  fn test2() {
+    let mut decoder = Decodee::new("123344".to_string(), 5055, "Vigen".to_string()).unwrap();
+    println!("Decoded: \n{:?}", decoder.decode());
+  }
 }
