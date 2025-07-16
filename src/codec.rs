@@ -25,8 +25,10 @@ impl Encodee {
   }
 
   pub fn encode(&mut self) -> &str {
-    self.cipher = Some(self.plain.clone());
-    self.encode_postfix().encode_keyword().encode_caesar().encode_reorder();
+    if self.cipher.is_none() {
+      self.cipher = Some(self.plain.clone());
+      self.encode_postfix().encode_keyword().encode_caesar().encode_reorder();
+    }
     str::from_utf8(self.cipher.as_ref().unwrap()).unwrap()
   }
 
@@ -109,12 +111,14 @@ impl Decodee {
   }
 
   pub fn decode(&mut self) -> Result<&str, &str> {
-    self.plain = Some(self.cipher.clone());
-    self.decode_reorder().decode_caesar().decode_keyword().decode_postfix();
-    let res = BASE64_STANDARD_NO_PAD.decode(self.plain.as_ref().unwrap());
-    match res {
-      Ok(_) => self.plain = Some(BASE64_STANDARD_NO_PAD.decode(self.plain.as_ref().unwrap()).unwrap()),
-      Err(_) => return Err("Invalid input!")
+    if self.plain.is_none() {
+      self.plain = Some(self.cipher.clone());
+      self.decode_reorder().decode_caesar().decode_keyword().decode_postfix();
+      let res = BASE64_STANDARD_NO_PAD.decode(self.plain.as_ref().unwrap());
+      match res {
+        Ok(_) => self.plain = Some(BASE64_STANDARD_NO_PAD.decode(self.plain.as_ref().unwrap()).unwrap()),
+        Err(_) => return Err("Invalid input!")
+      }
     }
     Ok(str::from_utf8(self.plain.as_ref().unwrap()).unwrap())
   }
