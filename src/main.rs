@@ -48,8 +48,13 @@ fn main() {
       }
 
       buffer = buffer.trim_end().to_string();
-      //TODO
-      let mut encoder = Encodee::new(buffer, 5055, String::from("Vigen")).unwrap();
+
+      let encoder = Encodee::new(buffer, 5055, String::from("Vigen"));
+      if let Err(error) = encoder {
+        eprintln!("Error creating encoder: {}", error);
+        return;
+      }
+      let mut encoder = encoder.unwrap();
       let encoded = encoder.encode();
 
       if let Some(path) = &cli.output {
@@ -74,10 +79,18 @@ fn main() {
       }
 
       buffer = buffer.trim_end().to_string();
-      //TODO
-      let mut decoder = Decodee::new(buffer, 5055, String::from("Vigen")).unwrap();
-      //TODO
-      let decoded = decoder.decode().unwrap();
+      let decoder = Decodee::new(buffer, 5055, String::from("Vigen"));
+      if let Err(error) = decoder {
+        eprintln!("Error creating decoder: {}", error);
+        return;
+      }
+      let mut decoder = decoder.unwrap();
+      let decoded = decoder.decode();
+      if let Err(error) = decoded {
+        eprintln!("Error decoding: {}", error);
+        return;
+      }
+      let decoded = decoded.unwrap();
 
       if let Some(path) = &cli.output {
         let mut file = std::fs::File::create(path).expect("Failed to create output file");
