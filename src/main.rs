@@ -19,6 +19,9 @@ struct Cli {
   input: Option<PathBuf>,
   #[arg(short, long, help = "output file path")]
   output: Option<PathBuf>,
+
+  #[arg(short, long, help = "enable verbose prompt")]
+  verbose: bool,
 }
 
 #[derive(clap::Subcommand)]
@@ -42,6 +45,9 @@ fn main() {
         file.read_to_string(&mut buffer)
             .expect("Failed to read from input file");
       } else {
+        if cli.verbose {
+          println!("Please enter the text to encode (Ctrl+D to finish):");
+        }
         std::io::stdin()
             .read_to_string(&mut buffer)
             .expect("Failed to read from stdin");
@@ -62,9 +68,15 @@ fn main() {
         file.write_all(encoded.as_bytes())
             .expect("Failed to write to output file");
       } else {
+        if cli.verbose {
+          println!("Encoded:");
+        }
         std::io::stdout()
             .write_all(encoded.as_bytes())
             .expect("Failed to write to stdout");
+        if cli.verbose {
+          println!();
+        }
       }
     }
     Commands::Decode => {
@@ -73,6 +85,9 @@ fn main() {
         file.read_to_string(&mut buffer)
             .expect("Failed to read from input file");
       } else {
+        if cli.verbose {
+          println!("Please enter the text to decode (Ctrl+D to finish):");
+        }
         std::io::stdin()
             .read_to_string(&mut buffer)
             .expect("Failed to read from stdin");
@@ -97,9 +112,15 @@ fn main() {
         file.write_all(decoded.as_bytes())
             .expect("Failed to write to output file");
       } else {
+        if cli.verbose {
+          println!("Decoded:");
+        }
         std::io::stdout()
             .write_all(decoded.as_bytes())
             .expect("Failed to write to stdout");
+        if cli.verbose {
+          println!();
+        }
       }
     }
     Commands::Example => {
