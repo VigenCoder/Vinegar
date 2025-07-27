@@ -6,6 +6,8 @@
 
 # Build & Binary
 /target
+/pkg
+/gui/node_modules
 
 # IDE & Editor
 /.vscode
