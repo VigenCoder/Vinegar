@@ -3,6 +3,7 @@
 /venv
 /.env
 /env
+/.cargo
 
 # Build & Binary
 /target
