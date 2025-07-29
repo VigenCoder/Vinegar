@@ -127,8 +127,9 @@ fn main() {
       let example = "你好{He\u{4e16}llo} 🦀界Wo\nrld！";
       println!("Example: \n{:?}", example);
       let mut encoder = Encodee::new(example.to_string(), 5055, "Vigen".to_string()).unwrap();
-      println!("Encoded: \n{:?}", encoder.encode());
-      let mut decoder = Decodee::new(encoder.encode().to_string(), 5055, "Vigen".to_string()).unwrap();
+      let cipher = encoder.encode();
+      println!("Encoded: \n{:?}", cipher);
+      let mut decoder = Decodee::new(cipher.to_string(), 5055, "Vigen".to_string()).unwrap();
       println!("Decoded: \n{:?}", decoder.decode());
     }
   }
