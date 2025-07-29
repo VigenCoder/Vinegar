@@ -13,7 +13,7 @@ pub fn encode(plain: &str) -> String {
 pub fn decode(cipher: &str) -> String {
   let mut decoder = Decodee::new(cipher.to_string(), 5055, "Vigen".to_string()).unwrap();
   match decoder.decode() {
-    Ok(cipher) => cipher.to_string(),
+    Ok(plain) => plain.to_string(),
     Err(_) => "Invalid input!".to_string()
   }
 }
