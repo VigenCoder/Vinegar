@@ -6,7 +6,7 @@ pub const PARAM_RANGE: ((u8, u8), (u8, u8), (u8, u8)) = ((1, 9), (1, 63), (2, 9)
 pub struct Encodee {
   plain: Vec<u8>,
   params: (u8, u8, u8, Vec<u8>),
-  cipher: Option<Vec<u8>>,
+  cipher: Vec<u8>,
 }
 
 impl Encodee {
@@ -17,7 +17,7 @@ impl Encodee {
         Ok(Self {
           plain: BASE64_STANDARD_NO_PAD.encode(plain).into_bytes(),
           params,
-          cipher: None,
+          cipher: vec![],
         })
       }
       false => Err("Invalid parameters!".to_string())
@@ -25,15 +25,13 @@ impl Encodee {
   }
 
   pub fn encode(&mut self) -> &str {
-    if self.cipher.is_none() {
-      self.cipher = Some(self.plain.clone());
-      self.encode_postfix().encode_keyword().encode_caesar().encode_reorder();
-    }
-    str::from_utf8(self.cipher.as_ref().unwrap()).unwrap()
+    self.cipher = self.plain.clone();
+    self.encode_postfix().encode_keyword().encode_caesar().encode_reorder();
+    str::from_utf8(&self.cipher).unwrap()
   }
 
   fn encode_postfix(&mut self) -> &mut Encodee {
-    let cipher = self.cipher.as_mut().unwrap();
+    let cipher = &mut self.cipher;
     let len = self.params.0 as usize;
     cipher.reserve(len);
     let mut rng = rng();
@@ -44,7 +42,7 @@ impl Encodee {
   }
 
   fn encode_keyword(&mut self) -> &mut Encodee {
-    keyword(self.cipher.as_mut().unwrap(), &self.params.3);
+    keyword(&mut self.cipher, &self.params.3);
     self
   }
   // 另一种基于关键字的算法
@@ -72,7 +70,7 @@ impl Encodee {
   // }
 
   fn encode_caesar(&mut self) -> &mut Encodee {
-    self.cipher.as_mut().unwrap().iter_mut().for_each(|c| {
+    self.cipher.iter_mut().for_each(|c| {
       *c = from_base64((to_base64(*c) + self.params.1) % 64);
     });
     self
@@ -80,11 +78,11 @@ impl Encodee {
 
   fn encode_reorder(&mut self) -> &mut Encodee {
     let mut grps: Vec<Vec<u8>> = vec![vec![]; self.params.2 as usize];
-    self.cipher.as_ref().unwrap().iter().enumerate()
+    self.cipher.iter().enumerate()
         .for_each(|(idx, &c)| {
           grps[idx % self.params.2 as usize].push(c);
         });
-    self.cipher = Some(grps.concat());
+    self.cipher = grps.concat();
     self
   }
 }
@@ -92,7 +90,7 @@ impl Encodee {
 pub struct Decodee {
   cipher: Vec<u8>,
   params: (u8, u8, u8, Vec<u8>),
-  pub plain: Option<Vec<u8>>,
+  pub plain: Vec<u8>,
 }
 
 impl Decodee {
@@ -103,7 +101,7 @@ impl Decodee {
         Ok(Self {
           cipher: cipher.into_bytes(),
           params,
-          plain: None,
+          plain: vec![],
         })
       }
       false => Err("Invalid parameters!".to_string())
@@ -111,26 +109,28 @@ impl Decodee {
   }
 
   pub fn decode(&mut self) -> Result<&str, &str> {
-    if self.plain.is_none() {
-      self.plain = Some(self.cipher.clone());
-      self.decode_reorder().decode_caesar().decode_keyword().decode_postfix();
-      let res = BASE64_STANDARD_NO_PAD.decode(self.plain.as_ref().unwrap());
-      match res {
-        Ok(_) => self.plain = Some(BASE64_STANDARD_NO_PAD.decode(self.plain.as_ref().unwrap()).unwrap()),
-        Err(_) => return Err("Invalid input!")
-      }
+    self.plain = self.cipher.clone();
+    self.decode_reorder().decode_caesar().decode_keyword().decode_postfix();
+    let res = BASE64_STANDARD_NO_PAD.decode(&self.plain);
+    match res {
+      Ok(plain) => self.plain = plain,
+      Err(_) => return Err("Invalid input!")
     }
-    Ok(str::from_utf8(self.plain.as_ref().unwrap()).unwrap())
+    let res = str::from_utf8(&self.plain);
+    match res {
+      Ok(plain) => Ok(plain),
+      Err(_) => Err("Invalid input!")
+    }
   }
 
   fn decode_postfix(&mut self) -> &mut Decodee {
-    let plain = self.plain.as_mut().unwrap();
+    let plain = &mut self.plain;
     plain.truncate(plain.len() - self.params.0 as usize);
     self
   }
 
   fn decode_keyword(&mut self) -> &mut Decodee {
-    keyword(self.plain.as_mut().unwrap(), &self.params.3);
+    keyword(&mut self.plain, &self.params.3);
     self
   }
   // 另一种基于关键字的算法
@@ -159,14 +159,14 @@ impl Decodee {
   // }
 
   fn decode_caesar(&mut self) -> &mut Decodee {
-    self.plain.as_mut().unwrap().iter_mut().for_each(|c| {
+    self.plain.iter_mut().for_each(|c| {
       *c = from_base64((to_base64(*c) + 64 - self.params.1) % 64);
     });
     self
   }
 
   fn decode_reorder(&mut self) -> &mut Decodee {
-    let len = self.plain.as_ref().unwrap().len();
+    let len = self.plain.len();
     let cnts: Vec<usize> = (0..self.params.2 as usize)
         .map(|i| {
           if i < (len % self.params.2 as usize) {
@@ -177,23 +177,22 @@ impl Decodee {
         })
         .collect();
     let grps: Vec<_> = cnts.iter()
-        .scan(self.plain.as_ref().unwrap().as_slice(), |remaining, &cnt| {
+        .scan(self.plain.as_slice(), |remaining, &cnt| {
           let (chunk, rest) = remaining.split_at(cnt);
           *remaining = rest;
           Some(chunk.to_vec())
         })
         .collect();
-    self.plain = Some(
-      (0..*cnts.last().unwrap()).map(|i| {
-        grps.iter()
-            .map(move |grp| grp[i])
-      })
-          .flatten()
-          .chain(grps.iter()
-              .take(len % self.params.2 as usize)
-              .map(|grp| grp[grp.len() - 1]))
-          .collect()
-    );
+    self.plain =
+        (0..*cnts.last().unwrap()).map(|i| {
+          grps.iter()
+              .map(move |grp| grp[i])
+        })
+            .flatten()
+            .chain(grps.iter()
+                .take(len % self.params.2 as usize)
+                .map(|grp| grp[grp.len() - 1]))
+            .collect();
     self
   }
 }
@@ -253,14 +252,15 @@ mod tests {
     let example = "你好{He\u{4e16}llo} 🦀界Wo\nrld！";
     println!("Example: \n{:?}", example);
     let mut encoder = Encodee::new(example.to_string(), 5055, "Vigen".to_string()).unwrap();
-    println!("Encoded: \n{:?}", encoder.encode());
-    let mut decoder = Decodee::new(encoder.encode().to_string(), 5055, "Vigen".to_string()).unwrap();
+    let cipher = encoder.encode();
+    println!("Encoded: \n{:?}", cipher);
+    let mut decoder = Decodee::new(cipher.to_string(), 5055, "Vigen".to_string()).unwrap();
     println!("Decoded: \n{:?}", decoder.decode());
   }
 
   #[test]
   fn test2() {
-    let mut decoder = Decodee::new("123344".to_string(), 5055, "Vigen".to_string()).unwrap();
+    let mut decoder = Decodee::new("MFrYo1O19FhfeSqRWEkiDGsZ4".to_string(), 5055, "Vigen".to_string()).unwrap();
     println!("Decoded: \n{:?}", decoder.decode());
   }
 }
