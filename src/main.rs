@@ -55,7 +55,7 @@ fn main() {
 
       buffer = buffer.trim_end().to_string();
 
-      let encoder = Encodee::new(buffer, 2026, String::from("Vigen"));
+      let encoder = Encodee::new(&*buffer, 2026, "Vigen");
       if let Err(error) = encoder {
         eprintln!("Error creating encoder: {}", error);
         return;
@@ -94,7 +94,7 @@ fn main() {
       }
 
       buffer = buffer.trim_end().to_string();
-      let decoder = Decodee::new(buffer, 2026, String::from("Vigen"));
+      let decoder = Decodee::new(&*buffer, 2026, "Vigen");
       if let Err(error) = decoder {
         eprintln!("Error creating decoder: {}", error);
         return;
@@ -126,10 +126,10 @@ fn main() {
     Commands::Example => {
       let example = "你好{He\u{4e16}llo} 🦀界Wo\nrld！";
       println!("Example: \n{:?}", example);
-      let mut encoder = Encodee::new(example.to_string(), 2026, "Vigen".to_string()).unwrap();
+      let mut encoder = Encodee::new(example, 2026, "Vigen").unwrap();
       let cipher = encoder.encode();
       println!("Encoded: \n{:?}", cipher);
-      let mut decoder = Decodee::new(cipher.to_string(), 2026, "Vigen".to_string()).unwrap();
+      let mut decoder = Decodee::new(cipher, 2026, "Vigen").unwrap();
       println!("Decoded: \n{:?}", decoder.decode());
     }
   }

@@ -8,7 +8,7 @@ pub struct Encodee {
 }
 
 impl Encodee {
-  pub fn new(plain: String, param: u16, keyword: String) -> Result<Self, String> {
+  pub fn new(plain: &str, param: u16, keyword: &str) -> Result<Self, String> {
     if param > 4535 {
       return Err("Invalid parameters!".to_string());
     }
@@ -22,7 +22,8 @@ impl Encodee {
 
   pub fn encode(&mut self) -> &str {
     self.cipher = self.plain.clone();
-    self.encode_postfix().encode_keyword().encode_caesar().encode_reorder();
+    self.encode_postfix().encode_keyword()
+      .encode_caesar().encode_reorder();
     str::from_utf8(&self.cipher).unwrap()
   }
 
@@ -68,13 +69,13 @@ pub struct Decodee {
 }
 
 impl Decodee {
-  pub fn new(cipher: String, param: u16, keyword: String) -> Result<Self, String> {
+  pub fn new(cipher: &str, param: u16, keyword: &str) -> Result<Self, String> {
     if param > 4535 {
       return Err("Invalid parameters!".to_string());
     }
     let params = map_param(param, keyword);
     Ok(Self {
-      cipher: cipher.into_bytes(),
+      cipher: cipher.to_string().into_bytes(),
       params,
       plain: vec![],
     })
@@ -82,8 +83,10 @@ impl Decodee {
 
   pub fn decode(&mut self) -> Result<&str, &str> {
     self.plain = self.cipher.clone();
-    self.decode_reorder().decode_caesar().decode_keyword().decode_postfix();
-    let res = BASE64_STANDARD_NO_PAD.decode(&self.plain);
+    self.decode_reorder().decode_caesar()
+      .decode_keyword().decode_postfix();
+    let res
+      = BASE64_STANDARD_NO_PAD.decode(&self.plain);
     match res {
       Ok(plain) => self.plain = plain,
       Err(_) => return Err("Invalid input!")
@@ -151,7 +154,8 @@ fn keyword(databytes: &mut Vec<u8>, keybytes: &[u8]) {
   }
   databytes.iter_mut().enumerate()
     .for_each(|(idx, databyte)| {
-      *databyte = from_base64(to_base64(*databyte) ^ to_base64(keybytes[idx % keybytes.len()]));
+      *databyte = from_base64(to_base64(*databyte) ^
+        to_base64(keybytes[idx % keybytes.len()]));
     })
 }
 
@@ -187,8 +191,9 @@ fn from_base64(idx: u8) -> u8 {
   }
 }
 
-fn map_param(param: u16, keyword: String) -> (u8, u8, u8, Vec<u8>) {
-  ((param / 8 / 63 + 1) as u8, (param / 8 % 63 + 1) as u8, (param % 8 + 2) as u8,
+fn map_param(param: u16, keyword: &str) -> (u8, u8, u8, Vec<u8>) {
+  ((param / 8 / 63 + 1) as u8, (param / 8 % 63 + 1) as u8,
+   (param % 8 + 2) as u8,
    BASE64_STANDARD_NO_PAD.encode(keyword).into_bytes())
 }
 
@@ -199,16 +204,19 @@ mod tests {
   fn test1() {
     let example = "你好{He\u{4e16}llo} 🦀界Wo\nrld！";
     println!("Example: \n{:?}", example);
-    let mut encoder = Encodee::new(example.to_string(), 2026, "Vigen".to_string()).unwrap();
+    let mut encoder =
+      Encodee::new(example, 2026, "Vigen").unwrap();
     let cipher = encoder.encode();
     println!("Encoded: \n{:?}", cipher);
-    let mut decoder = Decodee::new(cipher.to_string(), 2026, "Vigen".to_string()).unwrap();
+    let mut decoder =
+      Decodee::new(cipher, 2026, "Vigen").unwrap();
     println!("Decoded: \n{:?}", decoder.decode());
   }
 
   #[test]
   fn test2() {
-    let mut decoder = Decodee::new("MFrYo1O19FhfeSqRWEkiDGsZ4".to_string(), 2026, "Vigen".to_string()).unwrap();
+    let mut decoder =
+      Decodee::new("MFrYo1O19FhfeSqRWEkiDGsZ4", 2026, "Vigen").unwrap();
     println!("Decoded: \n{:?}", decoder.decode());
   }
 }
