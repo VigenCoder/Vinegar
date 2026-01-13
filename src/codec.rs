@@ -135,11 +135,10 @@ impl Decodee {
       })
       .collect();
     self.plain =
-      (0..*cnts.last().unwrap()).map(|i| {
+      (0..*cnts.last().unwrap()).flat_map(|i| {
         grps.iter()
           .map(move |grp| grp[i])
       })
-        .flatten()
         .chain(grps.iter()
           .take(len % self.params.2 as usize)
           .map(|grp| grp[grp.len() - 1]))
@@ -148,7 +147,7 @@ impl Decodee {
   }
 }
 
-fn keyword(databytes: &mut Vec<u8>, keybytes: &[u8]) {
+fn keyword(databytes: &mut [u8], keybytes: &[u8]) {
   if keybytes.is_empty() {
     return;
   }
@@ -160,34 +159,24 @@ fn keyword(databytes: &mut Vec<u8>, keybytes: &[u8]) {
 }
 
 fn to_base64(c: u8) -> u8 {
-  if 65 <= c && c <= 90 {
-    c - 65
-  } else if 97 <= c && c <= 122 {
-    c - 71
-  } else if 48 <= c && c <= 57 {
-    c + 4
-  } else if c == 43 {
-    62
-  } else if c == 47 {
-    63
-  } else {
-    64
+  match c {
+    65..=90 => c - 65,
+    97..=122 => c - 71,
+    48..=57 => c + 4,
+    43 => 62,
+    47 => 63,
+    _ => 64,
   }
 }
 
 fn from_base64(idx: u8) -> u8 {
-  if idx <= 25 {
-    idx + 65
-  } else if 26 <= idx && idx <= 51 {
-    idx + 71
-  } else if 52 <= idx && idx <= 61 {
-    idx - 4
-  } else if idx == 62 {
-    43
-  } else if idx == 63 {
-    47
-  } else {
-    0
+  match idx {
+    ..=25 => idx + 65,
+    26..=51 => idx + 71,
+    52..=61 => idx - 4,
+    62 => 43,
+    63 => 47,
+    _ => 0,
   }
 }
 

@@ -55,7 +55,7 @@ fn main() {
 
       buffer = buffer.trim_end().to_string();
 
-      let encoder = Encodee::new(&*buffer, 2026, "Vigen");
+      let encoder = Encodee::new(&buffer, 2026, "Vigen");
       if let Err(error) = encoder {
         eprintln!("Error creating encoder: {}", error);
         return;
@@ -94,7 +94,7 @@ fn main() {
       }
 
       buffer = buffer.trim_end().to_string();
-      let decoder = Decodee::new(&*buffer, 2026, "Vigen");
+      let decoder = Decodee::new(&buffer, 2026, "Vigen");
       if let Err(error) = decoder {
         eprintln!("Error creating decoder: {}", error);
         return;
