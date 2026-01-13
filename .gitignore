@@ -3,9 +3,12 @@
 /venv
 /.env
 /env
+/.cargo
 
 # Build & Binary
 /target
+/pkg
+/gui/node_modules
 
 # IDE & Editor
 /.vscode
@@ -13,3 +16,4 @@
 
 # Temporary
 /temp
+package-lock.json
